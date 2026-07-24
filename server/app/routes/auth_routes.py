@@ -1,8 +1,11 @@
 from flask import Blueprint
 from flask_restful import Api
 
-from app.resources.auth import RegisterResource, LoginResource
-
+from app.resources.auth import (
+    RegisterResource,
+    LoginResource,
+    MeResource
+)
 
 auth_bp = Blueprint(
     "auth",
@@ -20,4 +23,9 @@ auth_api.add_resource(
 auth_api.add_resource(
     LoginResource,
     "/login"
+)
+
+auth_api.add_resource(
+    MeResource,
+    "/me"
 )

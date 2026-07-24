@@ -1,6 +1,10 @@
 from flask import request
 from flask_restful import Resource
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import (
+    create_access_token,
+    jwt_required,
+    get_jwt_identity
+)
 
 from app import db
 from app.models import User, Profile
@@ -88,6 +92,28 @@ class LoginResource(Resource):
         return {
             "message": "Login successful",
             "access_token": access_token,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role
+            }
+        }, 200
+
+class MeResource(Resource):
+
+     @jwt_required()
+     def get(self):
+        user_id = get_jwt_identity()
+
+        user = User.query.get(int(user_id))
+
+        if not user:
+            return {
+                "error": "User not found"
+            }, 404
+
+        return {
             "user": {
                 "id": user.id,
                 "username": user.username,
