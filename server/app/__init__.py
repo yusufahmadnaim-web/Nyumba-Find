@@ -34,6 +34,10 @@ def create_app():
     from app.routes.property_routes import property_bp
     app.register_blueprint(property_bp)
 
+    # Register profile routes
+    from app.routes.profile_routes import profile_bp
+    app.register_blueprint(profile_bp)
+
     # Serve uploaded property images
     @app.route("/uploads/<path:filename>")
     def uploaded_file(filename):
