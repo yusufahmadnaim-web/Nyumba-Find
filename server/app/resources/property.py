@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import Property, PropertyImage
-
+from app.models.user import User
 
 class PropertyListResource(Resource):
 
@@ -299,15 +299,18 @@ class PropertyResource(Resource):
                 "error": "Property not found"
             }, 404
 
-        current_user_id = int(
-            get_jwt_identity()
-        )
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
 
-        # Only property owner can update
-        if property.user_id != current_user_id:
-            return {
-                "error": "You are not authorized to update this property"
-            }, 403
+        if not current_user:
+              return {
+        "error": "User not found"
+    }, 404
+
+        if property.user_id != current_user_id and current_user.role != "admin":
+               return {
+        "error": "You are not authorized to update this property"
+    }, 403
 
         data = request.get_json()
 
@@ -372,17 +375,15 @@ class PropertyResource(Resource):
     def delete(self, property_id):
         property = Property.query.get(property_id)
 
-        if not property:
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+
+        if not current_user:
             return {
-                "error": "Property not found"
+                "error": "User not found"
             }, 404
 
-        current_user_id = int(
-            get_jwt_identity()
-        )
-
-        # Only property owner can delete
-        if property.user_id != current_user_id:
+        if property.user_id != current_user_id and current_user.role != "admin":
             return {
                 "error": "You are not authorized to delete this property"
             }, 403
@@ -484,3 +485,6 @@ class PropertyImageResource(Resource):
                 "property_id": property_image.property_id
             }
         }, 201
+
+
+    
