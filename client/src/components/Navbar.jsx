@@ -1,31 +1,29 @@
-import { Link } from "react-router-dom";
-
 function Navbar() {
   return (
-    <nav className="absolute top-0 left-0 w-full z-50">
-      <div className="max-w-7xl mx-auto px-8 py-6 flex justify-between items-center">
+    <nav className="fixed top-0 left-0 z-50 w-full">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-6">
 
-        <Link
-          to="/"
-          className="text-3xl font-black text-white tracking-wide"
-        >
+        <h1 className="text-3xl font-bold text-white">
           NyumbaFind
-        </Link>
+        </h1>
 
-        <div className="hidden md:flex gap-10 text-white">
+        <ul className="hidden gap-10 text-white md:flex">
+          <li className="cursor-pointer hover:text-gray-300">
+            Home
+          </li>
 
-          <Link to="/">Home</Link>
+          <li className="cursor-pointer hover:text-gray-300">
+            Properties
+          </li>
 
-          <Link to="/properties">Properties</Link>
+          <li className="cursor-pointer hover:text-gray-300">
+            Favorites
+          </li>
 
-          <Link to="/favorites">Favorites</Link>
-
-          <Link to="/login">Login</Link>
-
-          <Link to="/register">Register</Link>
-
-        </div>
-
+          <li className="cursor-pointer hover:text-gray-300">
+            Login
+          </li>
+        </ul>
       </div>
     </nav>
   );
