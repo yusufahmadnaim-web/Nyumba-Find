@@ -1,29 +1,56 @@
+import { Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+
 function Navbar() {
+  const { user, logout } = useAuth();
+
   return (
-    <nav className="fixed top-0 left-0 z-50 w-full">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-8 py-6">
+    <nav className="bg-gray-900 text-white px-8 py-5">
+      <div className="max-w-7xl mx-auto flex justify-between items-center">
 
-        <h1 className="text-3xl font-bold text-white">
+        <Link
+          to="/"
+          className="text-4xl font-bold"
+        >
           NyumbaFind
-        </h1>
+        </Link>
 
-        <ul className="hidden gap-10 text-white md:flex">
-          <li className="cursor-pointer hover:text-gray-300">
-            Home
-          </li>
+        <div className="flex items-center gap-8">
 
-          <li className="cursor-pointer hover:text-gray-300">
-            Properties
-          </li>
+          <Link to="/">Home</Link>
 
-          <li className="cursor-pointer hover:text-gray-300">
-            Favorites
-          </li>
+          <Link to="/properties">Properties</Link>
 
-          <li className="cursor-pointer hover:text-gray-300">
-            Login
-          </li>
-        </ul>
+          {user ? (
+            <>
+              <Link to="/favorites">
+                Favorites
+              </Link>
+
+              <Link to="/profile">
+                Profile
+              </Link>
+
+              <button
+                onClick={logout}
+                className="text-red-400 hover:text-red-500"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">
+                Login
+              </Link>
+
+              <Link to="/register">
+                Register
+              </Link>
+            </>
+          )}
+
+        </div>
       </div>
     </nav>
   );
