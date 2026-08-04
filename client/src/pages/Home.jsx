@@ -10,13 +10,14 @@ import Testimonials from "../components/Testimonials";
 function Home() {
   return (
     <>
-      <Navbar />
+      
       <Hero />
       <Services />
       <FeaturedProperties />
       <Testimonials />
       <WhyChooseUs />
-      <Footer />
+    
+      
     </>
   );
 }

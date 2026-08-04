@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+
 import { register } from "../services/auth";
 
 function Register() {
@@ -28,17 +30,19 @@ function Register() {
 
       await register(formData);
 
-      alert("Account created successfully!");
+      toast.success("🎉 Account created successfully!");
 
-      navigate("/login");
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+
     } catch (error) {
       console.error(error);
 
-      if (error.response) {
-        console.log(error.response.data);
-        alert(JSON.stringify(error.response.data));
+      if (error.response?.data?.error) {
+        toast.error(error.response.data.error);
       } else {
-        alert(error.message);
+        toast.error("Something went wrong. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -88,7 +92,7 @@ function Register() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 py-4 rounded-lg font-bold text-white transition"
+          className="w-full bg-green-600 hover:bg-green-700 py-4 rounded-lg font-bold text-white transition disabled:opacity-50"
         >
           {loading ? "Creating Account..." : "Register"}
         </button>

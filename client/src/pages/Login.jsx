@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+
 import { login } from "../services/auth";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -35,17 +37,16 @@ function Login() {
       // Save logged-in user
       setUser(response.data.user);
 
-      alert("Login successful!");
+      toast.success("Login successful!");
 
       navigate("/");
     } catch (error) {
       console.error(error);
 
-      if (error.response) {
-        console.log(error.response.data);
-        alert(JSON.stringify(error.response.data));
+      if (error.response?.data?.error) {
+        toast.error(error.response.data.error);
       } else {
-        alert("Invalid email or password.");
+        toast.error("Invalid email or password.");
       }
     } finally {
       setLoading(false);
@@ -85,7 +86,7 @@ function Login() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 transition py-4 rounded-lg font-bold text-white"
+          className="w-full bg-green-600 hover:bg-green-700 transition py-4 rounded-lg font-bold text-white disabled:opacity-50"
         >
           {loading ? "Logging in..." : "Login"}
         </button>

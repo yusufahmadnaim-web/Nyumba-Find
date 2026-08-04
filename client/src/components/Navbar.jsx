@@ -1,56 +1,83 @@
-import { Link } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 function Navbar() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const navClass = ({ isActive }) =>
+    isActive
+      ? "text-green-400 font-semibold"
+      : "hover:text-green-400 transition";
+
+  function handleLogout() {
+    logout();
+    navigate("/");
+  }
 
   return (
-    <nav className="bg-gray-900 text-white px-8 py-5">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <nav className="bg-[#111827] text-white shadow-lg sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
 
         <Link
           to="/"
-          className="text-4xl font-bold"
+          className="text-3xl font-extrabold text-green-400"
         >
-          NyumbaFind
+          🏠 NyumbaFind
         </Link>
 
-        <div className="flex items-center gap-8">
+        <div className="flex items-center gap-6">
 
-          <Link to="/">Home</Link>
+          <NavLink to="/" className={navClass}>
+            Home
+          </NavLink>
 
-          <Link to="/properties">Properties</Link>
+          <NavLink to="/properties" className={navClass}>
+            Properties
+          </NavLink>
 
           {user ? (
             <>
-              <Link to="/favorites">
-                Favorites
-              </Link>
+              <NavLink to="/dashboard" className={navClass}>
+                Dashboard
+              </NavLink>
 
-              <Link to="/profile">
+              <NavLink to="/create-property" className={navClass}>
+                Create Property
+              </NavLink>
+
+              <NavLink to="/favorites" className={navClass}>
+                Favorites
+              </NavLink>
+
+              <NavLink to="/profile" className={navClass}>
                 Profile
-              </Link>
+              </NavLink>
 
               <button
-                onClick={logout}
-                className="text-red-400 hover:text-red-500"
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition"
               >
                 Logout
               </button>
             </>
           ) : (
             <>
-              <Link to="/login">
+              <NavLink to="/login" className={navClass}>
                 Login
-              </Link>
+              </NavLink>
 
-              <Link to="/register">
+              <NavLink
+                to="/register"
+                className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg transition"
+              >
                 Register
-              </Link>
+              </NavLink>
             </>
           )}
 
         </div>
+
       </div>
     </nav>
   );

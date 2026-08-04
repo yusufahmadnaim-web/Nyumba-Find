@@ -7,56 +7,81 @@ function Favorites() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    fetchFavorites();
+  }, []);
 
-    api
-      .get("/favorites", {
+  async function fetchFavorites() {
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await api.get("/favorites", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      })
-      .then((response) => {
-        setFavorites(response.data.favorites);
-      })
-      .catch((error) => {
-        console.error("Error fetching favorites:", error);
-      })
-      .finally(() => {
-        setLoading(false);
       });
-  }, []);
 
-  if (loading) {
-    return (
-      <div className="bg-gray-950 min-h-screen flex justify-center items-center text-white text-2xl">
-        Loading favorites...
-      </div>
-    );
+      setFavorites(response.data.favorites);
+    } catch (error) {
+      console.error("Failed to fetch favorites:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function removeFavorite(propertyId) {
+    const token = localStorage.getItem("token");
+
+    try {
+      await api.delete(`/properties/${propertyId}/favorite`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setFavorites((prev) =>
+        prev.filter((fav) => fav.property.id !== propertyId)
+      );
+
+      alert("Property removed from favorites.");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to remove favorite.");
+    }
   }
 
   return (
-    <section className="bg-gray-950 min-h-screen py-20 px-8">
+    <section className="min-h-screen bg-[#050816] text-white py-16 px-6">
       <div className="max-w-7xl mx-auto">
 
-        <h1 className="text-5xl text-white font-bold mb-4">
+        <h1 className="text-5xl font-bold mb-3">
           My Favorites
         </h1>
 
         <p className="text-gray-400 mb-10">
-          Properties you've saved.
+          Your saved properties.
         </p>
 
-        {favorites.length === 0 ? (
-          <div className="text-center text-gray-400 text-xl mt-20">
-            ❤️ You haven't saved any properties yet.
+        {loading ? (
+          <div className="text-center text-gray-400 text-xl">
+            Loading favorites...
+          </div>
+        ) : favorites.length === 0 ? (
+          <div className="text-center text-gray-400 text-xl">
+            You haven't saved any properties yet.
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {favorites.map((favorite) => (
-              <PropertyCard
-                key={favorite.id}
-                property={favorite.property}
-              />
+              <div key={favorite.id}>
+                <PropertyCard property={favorite.property} />
+
+                <button
+                  onClick={() => removeFavorite(favorite.property.id)}
+                  className="w-full mt-3 bg-red-600 hover:bg-red-700 py-3 rounded-xl font-semibold transition"
+                >
+                  ❤️ Remove from Favorites
+                </button>
+              </div>
             ))}
           </div>
         )}
