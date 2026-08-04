@@ -96,7 +96,7 @@ function EditProperty() {
       imageData.append("image", selectedImage);
 
       await api.post(
-        `/properties/${id}/images`,
+        `/properties/${id}/images/upload`,
         imageData,
         {
           headers: {
@@ -136,7 +136,7 @@ function EditProperty() {
       const token = localStorage.getItem("token");
 
       await api.delete(
-        `/properties/${id}/images/${imageId}`,
+        `/properties/images/${imageId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

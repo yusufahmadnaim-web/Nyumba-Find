@@ -4,7 +4,6 @@ import PropertyCard from "../components/PropertyCard";
 
 function Properties() {
   const [properties, setProperties] = useState([]);
-  const [filteredProperties, setFilteredProperties] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
@@ -15,64 +14,11 @@ function Properties() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
 
-  useEffect(() => {
-    api
-      .get("/properties")
-      .then((response) => {
-        setProperties(response.data.properties);
-        setFilteredProperties(response.data.properties);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch properties:", error);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({});
 
   useEffect(() => {
-    const results = properties.filter((property) => {
-      const matchesSearch =
-        property.title.toLowerCase().includes(search.toLowerCase()) ||
-        property.location.toLowerCase().includes(search.toLowerCase()) ||
-        property.county.toLowerCase().includes(search.toLowerCase());
-
-      const matchesType =
-        propertyType === "" ||
-        property.property_type === propertyType;
-
-      const matchesListing =
-        listingType === "" ||
-        property.listing_type === listingType;
-
-      const matchesCounty =
-        county === "" ||
-        property.county === county;
-
-      const matchesBedrooms =
-        bedrooms === "" ||
-        Number(property.bedrooms) === Number(bedrooms);
-
-      const matchesMinPrice =
-        minPrice === "" ||
-        Number(property.price) >= Number(minPrice);
-
-      const matchesMaxPrice =
-        maxPrice === "" ||
-        Number(property.price) <= Number(maxPrice);
-
-      return (
-        matchesSearch &&
-        matchesType &&
-        matchesListing &&
-        matchesCounty &&
-        matchesBedrooms &&
-        matchesMinPrice &&
-        matchesMaxPrice
-      );
-    });
-
-    setFilteredProperties(results);
+    fetchProperties();
   }, [
     search,
     propertyType,
@@ -81,8 +27,35 @@ function Properties() {
     bedrooms,
     minPrice,
     maxPrice,
-    properties,
+    page,
   ]);
+
+  async function fetchProperties() {
+    try {
+      setLoading(true);
+
+      const response = await api.get("/properties", {
+        params: {
+          search,
+          property_type: propertyType,
+          listing_type: listingType,
+          county,
+          bedrooms,
+          min_price: minPrice,
+          max_price: maxPrice,
+          page,
+          per_page: 9,
+        },
+      });
+
+      setProperties(response.data.properties);
+      setPagination(response.data.pagination);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function clearFilters() {
     setSearch("");
@@ -92,6 +65,7 @@ function Properties() {
     setBedrooms("");
     setMinPrice("");
     setMaxPrice("");
+    setPage(1);
   }
 
   return (
@@ -106,19 +80,29 @@ function Properties() {
           Browse available homes across Kenya.
         </p>
 
+        {/* Search */}
+
         <input
           type="text"
           placeholder="Search by title, location or county..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           className="w-full p-4 rounded-xl bg-gray-800 mb-6 outline-none"
         />
+
+        {/* Filters */}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
 
           <select
             value={propertyType}
-            onChange={(e) => setPropertyType(e.target.value)}
+            onChange={(e) => {
+              setPropertyType(e.target.value);
+              setPage(1);
+            }}
             className="bg-gray-800 p-4 rounded-xl"
           >
             <option value="">All Property Types</option>
@@ -129,7 +113,10 @@ function Properties() {
 
           <select
             value={listingType}
-            onChange={(e) => setListingType(e.target.value)}
+            onChange={(e) => {
+              setListingType(e.target.value);
+              setPage(1);
+            }}
             className="bg-gray-800 p-4 rounded-xl"
           >
             <option value="">All Listings</option>
@@ -139,7 +126,10 @@ function Properties() {
 
           <select
             value={county}
-            onChange={(e) => setCounty(e.target.value)}
+            onChange={(e) => {
+              setCounty(e.target.value);
+              setPage(1);
+            }}
             className="bg-gray-800 p-4 rounded-xl"
           >
             <option value="">All Counties</option>
@@ -151,7 +141,10 @@ function Properties() {
 
           <select
             value={bedrooms}
-            onChange={(e) => setBedrooms(e.target.value)}
+            onChange={(e) => {
+              setBedrooms(e.target.value);
+              setPage(1);
+            }}
             className="bg-gray-800 p-4 rounded-xl"
           >
             <option value="">Bedrooms</option>
@@ -170,7 +163,10 @@ function Properties() {
             type="number"
             placeholder="Minimum Price"
             value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
+            onChange={(e) => {
+              setMinPrice(e.target.value);
+              setPage(1);
+            }}
             className="bg-gray-800 p-4 rounded-xl"
           />
 
@@ -178,7 +174,10 @@ function Properties() {
             type="number"
             placeholder="Maximum Price"
             value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
+            onChange={(e) => {
+              setMaxPrice(e.target.value);
+              setPage(1);
+            }}
             className="bg-gray-800 p-4 rounded-xl"
           />
 
@@ -191,28 +190,57 @@ function Properties() {
 
         </div>
 
+        {/* Results */}
+
         {loading ? (
-          <div className="text-center text-gray-400 text-lg">
+          <div className="text-center text-gray-400 text-xl py-20">
             Loading properties...
           </div>
-        ) : filteredProperties.length === 0 ? (
-          <div className="text-center text-gray-400 text-lg">
+        ) : properties.length === 0 ? (
+          <div className="text-center text-gray-400 text-xl py-20">
             No properties found.
           </div>
         ) : (
           <>
             <p className="text-gray-400 mb-6">
-              {filteredProperties.length} properties found
+              {pagination.total} properties found
             </p>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredProperties.map((property) => (
+              {properties.map((property) => (
                 <PropertyCard
                   key={property.id}
                   property={property}
                 />
               ))}
             </div>
+
+            {/* Pagination */}
+
+            <div className="flex justify-center items-center gap-4 mt-12">
+
+              <button
+                disabled={!pagination.has_previous}
+                onClick={() => setPage(page - 1)}
+                className="bg-gray-800 px-5 py-3 rounded-xl disabled:opacity-40"
+              >
+                ← Previous
+              </button>
+
+              <span className="text-lg font-semibold">
+                Page {pagination.page} of {pagination.pages}
+              </span>
+
+              <button
+                disabled={!pagination.has_next}
+                onClick={() => setPage(page + 1)}
+                className="bg-gray-800 px-5 py-3 rounded-xl disabled:opacity-40"
+              >
+                Next →
+              </button>
+
+            </div>
+
           </>
         )}
 

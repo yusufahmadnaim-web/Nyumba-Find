@@ -39,7 +39,6 @@ function Dashboard() {
       } catch {
         setFavoritesCount(0);
       }
-
     } catch (error) {
       console.error(error);
       toast.error("Failed to load dashboard.");
@@ -49,11 +48,7 @@ function Dashboard() {
   }
 
   async function handleDelete(id) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this property?"
-    );
-
-    if (!confirmed) return;
+    if (!window.confirm("Delete this property?")) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -68,23 +63,41 @@ function Dashboard() {
         prev.filter((property) => property.id !== id)
       );
 
-      toast.success("Property deleted successfully!");
-
+      toast.success("Property deleted!");
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to delete property.");
+      toast.error("Unable to delete property.");
     }
   }
 
   const totalImages = properties.reduce(
-    (total, property) => total + (property.images?.length || 0),
+    (sum, property) => sum + (property.images?.length || 0),
     0
   );
 
+  const totalValue = properties.reduce(
+    (sum, property) => sum + Number(property.price),
+    0
+  );
+
+  const rentProperties = properties.filter(
+    (p) => p.listing_type === "Rent"
+  ).length;
+
+  const saleProperties = properties.filter(
+    (p) => p.listing_type === "Sale"
+  ).length;
+
+  const latestProperties = [...properties]
+    .sort(
+      (a, b) =>
+        new Date(b.created_at) - new Date(a.created_at)
+    )
+    .slice(0, 5);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050816] text-white flex justify-center items-center text-2xl">
-        Loading dashboard...
+      <div className="min-h-screen bg-[#050816] flex items-center justify-center text-white text-2xl">
+        Loading Dashboard...
       </div>
     );
   }
@@ -93,204 +106,220 @@ function Dashboard() {
     <section className="min-h-screen bg-[#050816] text-white py-16 px-6">
       <div className="max-w-7xl mx-auto">
 
-        {/* Header */}
+        <div className="flex justify-between items-center flex-wrap gap-4 mb-10">
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-12">
           <div>
-            <h1 className="text-5xl font-bold mb-2">
-              Welcome{user?.username ? `, ${user.username}` : ""} 👋
+            <h1 className="text-5xl font-bold">
+              Welcome {user?.username}
             </h1>
 
-            <p className="text-gray-400">
-              Manage your properties and account from one place.
+            <p className="text-gray-400 mt-2">
+              Manage your listings and monitor your activity.
             </p>
           </div>
 
           <Link
             to="/create-property"
-            className="bg-green-600 hover:bg-green-700 px-6 py-4 rounded-xl font-bold text-center"
+            className="bg-green-600 hover:bg-green-700 px-6 py-4 rounded-xl font-bold"
           >
-            + Add Property
+            + Create Property
           </Link>
+
         </div>
 
-        {/* Stats */}
+        {/* Statistics */}
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-14">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
 
-          <div className="bg-[#111827] p-8 rounded-2xl shadow-lg">
-            <p className="text-gray-400 text-sm">
-              My Properties
-            </p>
-
-            <h2 className="text-4xl font-bold mt-3 text-green-400">
+          <div className="bg-[#111827] rounded-2xl p-8">
+            <p className="text-gray-400">My Properties</p>
+            <h2 className="text-4xl font-bold text-green-400 mt-2">
               {properties.length}
             </h2>
           </div>
 
-          <div className="bg-[#111827] p-8 rounded-2xl shadow-lg">
-            <p className="text-gray-400 text-sm">
-              Favorites
-            </p>
-
-            <h2 className="text-4xl font-bold mt-3 text-red-400">
+          <div className="bg-[#111827] rounded-2xl p-8">
+            <p className="text-gray-400">Favorites</p>
+            <h2 className="text-4xl font-bold text-red-400 mt-2">
               {favoritesCount}
             </h2>
           </div>
 
-          <div className="bg-[#111827] p-8 rounded-2xl shadow-lg">
-            <p className="text-gray-400 text-sm">
-              Total Images
-            </p>
-
-            <h2 className="text-4xl font-bold mt-3 text-blue-400">
+          <div className="bg-[#111827] rounded-2xl p-8">
+            <p className="text-gray-400">Images Uploaded</p>
+            <h2 className="text-4xl font-bold text-blue-400 mt-2">
               {totalImages}
             </h2>
           </div>
 
-          <div className="bg-[#111827] p-8 rounded-2xl shadow-lg">
-            <p className="text-gray-400 text-sm">
-              Account Status
-            </p>
-
-            <h2 className="text-xl font-bold mt-3 text-green-400">
-              Active
+          <div className="bg-[#111827] rounded-2xl p-8">
+            <p className="text-gray-400">Portfolio Value</p>
+            <h2 className="text-2xl font-bold text-yellow-400 mt-2">
+              KES {totalValue.toLocaleString()}
             </h2>
           </div>
 
         </div>
 
-        {/* Quick Actions */}
+        {/* Analytics */}
+
+        <div className="grid lg:grid-cols-2 gap-8 mb-14">
+
+          <div className="bg-[#111827] rounded-2xl p-8">
+
+            <h2 className="text-2xl font-bold mb-6">
+              Property Breakdown
+            </h2>
+
+            <div className="space-y-5">
+
+              <div>
+                <div className="flex justify-between">
+                  <span>For Rent</span>
+                  <span>{rentProperties}</span>
+                </div>
+
+                <div className="bg-gray-700 h-3 rounded mt-2">
+                  <div
+                    className="bg-green-500 h-3 rounded"
+                    style={{
+                      width: properties.length
+                        ? `${(rentProperties / properties.length) * 100}%`
+                        : "0%",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between">
+                  <span>For Sale</span>
+                  <span>{saleProperties}</span>
+                </div>
+
+                <div className="bg-gray-700 h-3 rounded mt-2">
+                  <div
+                    className="bg-blue-500 h-3 rounded"
+                    style={{
+                      width: properties.length
+                        ? `${(saleProperties / properties.length) * 100}%`
+                        : "0%",
+                    }}
+                  />
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div className="bg-[#111827] rounded-2xl p-8">
+
+            <h2 className="text-2xl font-bold mb-6">
+              Quick Actions
+            </h2>
+
+            <div className="grid grid-cols-2 gap-4">
+
+              <Link
+                to="/create-property"
+                className="bg-green-600 p-5 rounded-xl text-center hover:bg-green-700"
+              >
+                ➕<br />Add Property
+              </Link>
+
+              <Link
+                to="/properties"
+                className="bg-blue-600 p-5 rounded-xl text-center hover:bg-blue-700"
+              >
+                🏠<br />Browse
+              </Link>
+
+              <Link
+                to="/favorites"
+                className="bg-red-600 p-5 rounded-xl text-center hover:bg-red-700"
+              >
+                ❤️<br />Favorites
+              </Link>
+
+              <Link
+                to="/profile"
+                className="bg-purple-600 p-5 rounded-xl text-center hover:bg-purple-700"
+              >
+                👤<br />Profile
+              </Link>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Recent Properties */}
 
         <h2 className="text-3xl font-bold mb-6">
-          Quick Actions
+          Recent Properties
         </h2>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <div className="space-y-5">
 
-          <Link
-            to="/create-property"
-            className="bg-green-600 hover:bg-green-700 rounded-2xl p-8 transition"
-          >
-            <h3 className="text-2xl font-bold mb-3">
-              ➕ Add Property
-            </h3>
-
-            <p>Create a new property listing.</p>
-          </Link>
-
-          <Link
-            to="/properties"
-            className="bg-blue-600 hover:bg-blue-700 rounded-2xl p-8 transition"
-          >
-            <h3 className="text-2xl font-bold mb-3">
-              🏠 Browse Properties
-            </h3>
-
-            <p>Explore all available listings.</p>
-          </Link>
-
-          <Link
-            to="/favorites"
-            className="bg-red-600 hover:bg-red-700 rounded-2xl p-8 transition"
-          >
-            <h3 className="text-2xl font-bold mb-3">
-              ❤️ Favorites
-            </h3>
-
-            <p>View your saved homes.</p>
-          </Link>
-
-          <Link
-            to="/profile"
-            className="bg-purple-600 hover:bg-purple-700 rounded-2xl p-8 transition"
-          >
-            <h3 className="text-2xl font-bold mb-3">
-              👤 Profile
-            </h3>
-
-            <p>Manage your account.</p>
-          </Link>
-
-        </div>
-
-        {/* My Properties */}
-
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-bold">
-            My Properties
-          </h2>
-
-          <Link
-            to="/properties"
-            className="text-green-400 hover:text-green-300 font-semibold"
-          >
-            View All →
-          </Link>
-        </div>
-
-        {properties.length === 0 ? (
-          <div className="bg-[#111827] rounded-2xl p-10 text-center text-gray-400">
-            You haven't created any properties yet.
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-
-            {properties.map((property) => (
+          {latestProperties.length === 0 ? (
+            <div className="bg-[#111827] rounded-xl p-8 text-center text-gray-400">
+              No properties created yet.
+            </div>
+          ) : (
+            latestProperties.map((property) => (
               <div
                 key={property.id}
-                className="bg-[#111827] rounded-2xl overflow-hidden shadow-lg"
+                className="bg-[#111827] rounded-xl p-5 flex justify-between items-center flex-wrap gap-5"
               >
 
-                <img
-                  src={
-                    property.images?.length
-                      ? `http://127.0.0.1:5000${property.images[0].image_url}`
-                      : "https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800"
-                  }
-                  alt={property.title}
-                  className="w-full h-52 object-cover"
-                />
-
-                <div className="p-5">
+                <div>
 
                   <h3 className="text-2xl font-bold">
                     {property.title}
                   </h3>
 
-                  <p className="text-green-400 text-xl font-semibold mt-2">
+                  <p className="text-gray-400">
+                    {property.location}, {property.county}
+                  </p>
+
+                  <p className="text-green-400 font-bold mt-2">
                     KES {Number(property.price).toLocaleString()}
                   </p>
 
-                  <p className="text-gray-400 mt-2">
-                    📍 {property.location}, {property.county}
-                  </p>
+                </div>
 
-                  <div className="flex gap-3 mt-6">
+                <div className="flex gap-3">
 
-                    <Link
-                      to={`/edit-property/${property.id}`}
-                      className="flex-1 text-center bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-semibold"
-                    >
-                      Edit
-                    </Link>
+                  <Link
+                    to={`/properties/${property.id}`}
+                    className="bg-green-600 px-5 py-3 rounded-lg"
+                  >
+                    View
+                  </Link>
 
-                    <button
-                      onClick={() => handleDelete(property.id)}
-                      className="flex-1 bg-red-600 hover:bg-red-700 py-3 rounded-lg font-semibold"
-                    >
-                      Delete
-                    </button>
+                  <Link
+                    to={`/edit-property/${property.id}`}
+                    className="bg-blue-600 px-5 py-3 rounded-lg"
+                  >
+                    Edit
+                  </Link>
 
-                  </div>
+                  <button
+                    onClick={() => handleDelete(property.id)}
+                    className="bg-red-600 px-5 py-3 rounded-lg"
+                  >
+                    Delete
+                  </button>
 
                 </div>
 
               </div>
-            ))}
+            ))
+          )}
 
-          </div>
-        )}
+        </div>
 
       </div>
     </section>

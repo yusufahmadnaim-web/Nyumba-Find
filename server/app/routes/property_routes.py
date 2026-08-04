@@ -5,7 +5,12 @@ from app.resources.property import (
     PropertyListResource,
     MyPropertiesResource,
     PropertyResource,
-    PropertyImageResource,
+)
+
+from app.resources.property_image import (
+    UploadImageResource,
+    PropertyImagesResource,
+    DeleteImageResource,
 )
 
 property_bp = Blueprint(
@@ -15,6 +20,10 @@ property_bp = Blueprint(
 )
 
 property_api = Api(property_bp)
+
+# ======================================
+# Properties
+# ======================================
 
 property_api.add_resource(
     PropertyListResource,
@@ -31,8 +40,21 @@ property_api.add_resource(
     "/<int:property_id>"
 )
 
+# ======================================
+# Property Images
+# ======================================
+
 property_api.add_resource(
-    PropertyImageResource,
-    "/<int:property_id>/images",
-    "/<int:property_id>/images/<int:image_id>"
+    UploadImageResource,
+    "/<int:property_id>/images/upload"
+)
+
+property_api.add_resource(
+    PropertyImagesResource,
+    "/<int:property_id>/images"
+)
+
+property_api.add_resource(
+    DeleteImageResource,
+    "/images/<int:image_id>"
 )
