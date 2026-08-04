@@ -12,6 +12,7 @@ import CreateProperty from "../pages/CreateProperty";
 import EditProperty from "../pages/EditProperty";
 import NotFound from "../pages/NotFound";
 import AdminDashboard from "../pages/AdminDashboard";
+import AdminUsers from "../pages/AdminUsers";
 
 import ProtectedRoute from "../components/ProtectedRoute";
 
@@ -31,23 +32,32 @@ function AppRoutes() {
         element={<PropertyDetails />}
       />
 
-
-      <Route
-        path="/admin"
-        element={
-         <ProtectedRoute>
-         <AdminDashboard />
-         </ProtectedRoute>
-  }
-/>
-
-
-
+      {/* User Dashboard */}
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Admin Dashboard */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Admin Users */}
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute>
+            <AdminUsers />
           </ProtectedRoute>
         }
       />

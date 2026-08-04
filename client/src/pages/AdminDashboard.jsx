@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../services/api";
 
@@ -51,9 +52,16 @@ function AdminDashboard() {
           Admin Dashboard 👑
         </h1>
 
-        <p className="text-gray-400 mb-12">
+        <p className="text-gray-400 mb-8">
           Monitor the entire NyumbaFind platform.
         </p>
+
+        <Link
+          to="/admin/users"
+          className="inline-block mb-10 bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl font-semibold transition"
+        >
+          Manage Users →
+        </Link>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
 
