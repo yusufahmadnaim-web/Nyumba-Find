@@ -3,7 +3,7 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app import db
-from app.models import User, Profile
+from app.models import User, Profile, Favorite
 
 
 class ProfileResource(Resource):
@@ -28,16 +28,63 @@ class ProfileResource(Resource):
                 "error": "Profile not found"
             }, 404
 
+        properties = user.properties
+
+        property_count = len(properties)
+
+        favorite_count = Favorite.query.filter_by(
+            user_id=user_id
+        ).count()
+
+        image_count = sum(
+            len(property.images)
+            for property in properties
+        )
+
         return {
-            "profile": {
-                "id": profile.id,
-                "first_name": profile.first_name,
-                "last_name": profile.last_name,
-                "phone_number": profile.phone_number,
-                "bio": profile.bio,
-                "user_id": profile.user_id,
+            "user": {
+                "id": user.id,
                 "username": user.username,
-                "email": user.email
+                "email": user.email,
+                "role": user.role,
+
+                "profile": {
+                    "id": profile.id,
+                    "first_name": profile.first_name,
+                    "last_name": profile.last_name,
+                    "phone_number": profile.phone_number,
+                    "bio": profile.bio
+                },
+
+                "statistics": {
+                    "properties": property_count,
+                    "favorites": favorite_count,
+                    "images": image_count
+                },
+
+                "properties": [
+                    {
+                        "id": property.id,
+                        "title": property.title,
+                        "description": property.description,
+                        "property_type": property.property_type,
+                        "listing_type": property.listing_type,
+                        "price": float(property.price),
+                        "location": property.location,
+                        "county": property.county,
+                        "bedrooms": property.bedrooms,
+                        "bathrooms": property.bathrooms,
+
+                        "images": [
+                            {
+                                "id": image.id,
+                                "image_url": image.image_url
+                            }
+                            for image in property.images
+                        ]
+                    }
+                    for property in properties
+                ]
             }
         }, 200
 

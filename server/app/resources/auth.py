@@ -10,6 +10,9 @@ from app import db
 from app.models import User, Profile
 
 
+# ==========================================
+# REGISTER
+# ==========================================
 class RegisterResource(Resource):
 
     def post(self):
@@ -63,22 +66,32 @@ class RegisterResource(Resource):
         }, 201
 
 
+# ==========================================
+# LOGIN
+# ==========================================
 class LoginResource(Resource):
 
     def post(self):
         data = request.get_json()
 
+        print("LOGIN DATA:", data)
+
         email = data.get("email")
         password = data.get("password")
+
+        print("EMAIL:", email)
 
         if not email or not password:
             return {
                 "error": "Email and password are required"
             }, 400
 
-        user = User.query.filter_by(
-            email=email
-        ).first()
+        user = User.query.filter_by(email=email).first()
+
+        print("USER FOUND:", user)
+
+        if user:
+            print("PASSWORD VALID:", user.check_password(password))
 
         if not user or not user.check_password(password):
             return {
@@ -100,18 +113,45 @@ class LoginResource(Resource):
             }
         }, 200
 
+
+# ==========================================
+# CURRENT USER
+# ==========================================
 class MeResource(Resource):
 
-     @jwt_required()
-     def get(self):
-        user_id = get_jwt_identity()
+    @jwt_required()
+    def get(self):
+        user_id = int(get_jwt_identity())
 
-        user = User.query.get(int(user_id))
+        user = User.query.get(user_id)
 
         if not user:
             return {
                 "error": "User not found"
             }, 404
+
+        properties = []
+
+        for property in user.properties:
+            properties.append({
+                "id": property.id,
+                "title": property.title,
+                "description": property.description,
+                "property_type": property.property_type,
+                "listing_type": property.listing_type,
+                "price": float(property.price),
+                "location": property.location,
+                "county": property.county,
+                "bedrooms": property.bedrooms,
+                "bathrooms": property.bathrooms,
+                "images": [
+                    {
+                        "id": image.id,
+                        "image_url": image.image_url
+                    }
+                    for image in property.images
+                ]
+            })
 
         return {
             "user": {
@@ -119,5 +159,9 @@ class MeResource(Resource):
                 "username": user.username,
                 "email": user.email,
                 "role": user.role
-            }
+            },
+            "stats": {
+                "properties": len(properties)
+            },
+            "properties": properties
         }, 200

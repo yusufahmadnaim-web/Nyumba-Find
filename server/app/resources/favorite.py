@@ -11,7 +11,6 @@ class FavoriteResource(Resource):
     def post(self, property_id):
         user_id = int(get_jwt_identity())
 
-        # Check if property exists
         property = Property.query.get(property_id)
 
         if not property:
@@ -19,7 +18,6 @@ class FavoriteResource(Resource):
                 "error": "Property not found"
             }, 404
 
-        # Check if already favorited
         existing_favorite = Favorite.query.filter_by(
             user_id=user_id,
             property_id=property_id
@@ -76,11 +74,11 @@ class FavoriteListResource(Resource):
     def get(self):
         user_id = int(get_jwt_identity())
 
-        favorites = Favorite.query.filter_by(
-            user_id=user_id
-        ).order_by(
-            Favorite.created_at.desc()
-        ).all()
+        favorites = (
+            Favorite.query.filter_by(user_id=user_id)
+            .order_by(Favorite.created_at.desc())
+            .all()
+        )
 
         return {
             "favorites": [
@@ -99,7 +97,14 @@ class FavoriteListResource(Resource):
                         "county": favorite.property.county,
                         "bedrooms": favorite.property.bedrooms,
                         "bathrooms": favorite.property.bathrooms,
-                        "user_id": favorite.property.user_id
+                        "user_id": favorite.property.user_id,
+                        "images": [
+                            {
+                                "id": image.id,
+                                "image_url": image.image_url
+                            }
+                            for image in favorite.property.images
+                        ] if hasattr(favorite.property, "images") else []
                     }
                 }
                 for favorite in favorites

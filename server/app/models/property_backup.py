@@ -9,7 +9,6 @@ from app import db
 from app.models import Property, PropertyImage
 from app.models.user import User
 
-
 class PropertyListResource(Resource):
 
     # ==========================================
@@ -17,29 +16,28 @@ class PropertyListResource(Resource):
     # SEARCH + FILTER + PAGINATION
     # ==========================================
     def get(self):
-
         query = Property.query
 
-        # -------------------------
+        # --------------------------
         # SEARCH
-        # -------------------------
+        # --------------------------
         search = request.args.get("search")
 
         if search:
-            term = f"%{search}%"
+            search_term = f"%{search}%"
 
             query = query.filter(
                 db.or_(
-                    Property.title.ilike(term),
-                    Property.description.ilike(term),
-                    Property.location.ilike(term),
-                    Property.county.ilike(term),
+                    Property.title.ilike(search_term),
+                    Property.description.ilike(search_term),
+                    Property.location.ilike(search_term),
+                    Property.county.ilike(search_term)
                 )
             )
 
-        # -------------------------
-        # FILTERS
-        # -------------------------
+        # --------------------------
+        # FILTERING
+        # --------------------------
         county = request.args.get("county")
         location = request.args.get("location")
         property_type = request.args.get("property_type")
@@ -48,44 +46,66 @@ class PropertyListResource(Resource):
         min_price = request.args.get("min_price")
         max_price = request.args.get("max_price")
 
+        # County
         if county:
             query = query.filter(
                 Property.county.ilike(f"%{county}%")
             )
 
+        # Location
         if location:
             query = query.filter(
                 Property.location.ilike(f"%{location}%")
             )
 
+        # Property type
         if property_type:
             query = query.filter(
                 Property.property_type.ilike(f"%{property_type}%")
             )
 
+        # Listing type
         if listing_type:
             query = query.filter(
                 Property.listing_type.ilike(f"%{listing_type}%")
             )
 
+        # Bedrooms
         if bedrooms:
-            query = query.filter(
-                Property.bedrooms == int(bedrooms)
-            )
+            try:
+                query = query.filter(
+                    Property.bedrooms == int(bedrooms)
+                )
+            except ValueError:
+                return {
+                    "error": "bedrooms must be a valid number"
+                }, 400
 
+        # Minimum price
         if min_price:
-            query = query.filter(
-                Property.price >= float(min_price)
-            )
+            try:
+                query = query.filter(
+                    Property.price >= float(min_price)
+                )
+            except ValueError:
+                return {
+                    "error": "min_price must be a valid number"
+                }, 400
 
+        # Maximum price
         if max_price:
-            query = query.filter(
-                Property.price <= float(max_price)
-            )
+            try:
+                query = query.filter(
+                    Property.price <= float(max_price)
+                )
+            except ValueError:
+                return {
+                    "error": "max_price must be a valid number"
+                }, 400
 
-        # -------------------------
+        # --------------------------
         # PAGINATION
-        # -------------------------
+        # --------------------------
         page = request.args.get(
             "page",
             1,
@@ -98,6 +118,18 @@ class PropertyListResource(Resource):
             type=int
         )
 
+        # Prevent invalid page
+        if page < 1:
+            page = 1
+
+        # Prevent invalid per_page
+        if per_page < 1:
+            per_page = 10
+
+        # Maximum items per page
+        if per_page > 100:
+            per_page = 100
+
         pagination = query.order_by(
             Property.created_at.desc()
         ).paginate(
@@ -106,6 +138,9 @@ class PropertyListResource(Resource):
             error_out=False
         )
 
+        # --------------------------
+        # RESPONSE
+        # --------------------------
         return {
             "properties": [
                 {
@@ -122,6 +157,7 @@ class PropertyListResource(Resource):
                     "user_id": property.user_id,
                     "created_at": property.created_at.isoformat(),
                     "updated_at": property.updated_at.isoformat(),
+
                     "images": [
                         {
                             "id": image.id,
@@ -132,6 +168,7 @@ class PropertyListResource(Resource):
                 }
                 for property in pagination.items
             ],
+
             "pagination": {
                 "page": pagination.page,
                 "per_page": pagination.per_page,
@@ -147,8 +184,12 @@ class PropertyListResource(Resource):
     # ==========================================
     @jwt_required()
     def post(self):
-
         data = request.get_json()
+
+        if not data:
+            return {
+                "error": "Request body is required"
+            }, 400
 
         required_fields = [
             "title",
@@ -159,7 +200,7 @@ class PropertyListResource(Resource):
             "location",
             "county",
             "bedrooms",
-            "bathrooms",
+            "bathrooms"
         ]
 
         for field in required_fields:
@@ -167,6 +208,8 @@ class PropertyListResource(Resource):
                 return {
                     "error": f"{field} is required"
                 }, 400
+
+        user_id = get_jwt_identity()
 
         property = Property(
             title=data["title"],
@@ -178,7 +221,7 @@ class PropertyListResource(Resource):
             county=data["county"],
             bedrooms=data["bedrooms"],
             bathrooms=data["bathrooms"],
-            user_id=int(get_jwt_identity()),
+            user_id=int(user_id)
         )
 
         db.session.add(property)
@@ -186,6 +229,7 @@ class PropertyListResource(Resource):
 
         return {
             "message": "Property created successfully",
+
             "property": {
                 "id": property.id,
                 "title": property.title,
@@ -199,17 +243,122 @@ class PropertyListResource(Resource):
                 "bathrooms": property.bathrooms,
                 "user_id": property.user_id,
                 "created_at": property.created_at.isoformat(),
-                "images": [],
-            },
+                "images": []
+            }
         }, 201
+
     # ==========================================
-# MY PROPERTIES
-# ==========================================
+    # UPDATE PROPERTY
+    # ==========================================
+    @jwt_required()
+    def patch(self, property_id):
+        property = Property.query.get(property_id)
+
+        if not property:
+            return {
+                "error": "Property not found"
+            }, 404
+
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+
+        if not current_user:
+              return {
+        "error": "User not found"
+    }, 404
+
+        if property.user_id != current_user_id and current_user.role != "admin":
+               return {
+        "error": "You are not authorized to update this property"
+    }, 403
+
+        data = request.get_json()
+
+        if not data:
+            return {
+                "error": "Request body is required"
+            }, 400
+
+        allowed_fields = [
+            "title",
+            "description",
+            "property_type",
+            "listing_type",
+            "price",
+            "location",
+            "county",
+            "bedrooms",
+            "bathrooms"
+        ]
+
+        for field in allowed_fields:
+            if field in data:
+                setattr(
+                    property,
+                    field,
+                    data[field]
+                )
+
+        db.session.commit()
+
+        return {
+            "message": "Property updated successfully",
+
+            "property": {
+                "id": property.id,
+                "title": property.title,
+                "description": property.description,
+                "property_type": property.property_type,
+                "listing_type": property.listing_type,
+                "price": float(property.price),
+                "location": property.location,
+                "county": property.county,
+                "bedrooms": property.bedrooms,
+                "bathrooms": property.bathrooms,
+                "user_id": property.user_id,
+                "updated_at": property.updated_at.isoformat(),
+
+                "images": [
+                    {
+                        "id": image.id,
+                        "image_url": image.image_url
+                    }
+                    for image in property.images
+                ]
+            }
+        }, 200
+
+    # ==========================================
+    # DELETE PROPERTY
+    # ==========================================
+    @jwt_required()
+    def delete(self, property_id):
+        property = Property.query.get(property_id)
+
+        current_user_id = int(get_jwt_identity())
+        current_user = User.query.get(current_user_id)
+
+        if not current_user:
+            return {
+                "error": "User not found"
+            }, 404
+
+        if property.user_id != current_user_id and current_user.role != "admin":
+            return {
+                "error": "You are not authorized to delete this property"
+            }, 403
+
+        db.session.delete(property)
+        db.session.commit()
+
+        return {
+            "message": "Property deleted successfully"
+        }, 200
+
 class MyPropertiesResource(Resource):
 
     @jwt_required()
     def get(self):
-
         user_id = int(get_jwt_identity())
 
         properties = (
@@ -235,6 +384,7 @@ class MyPropertiesResource(Resource):
                     "user_id": property.user_id,
                     "created_at": property.created_at.isoformat(),
                     "updated_at": property.updated_at.isoformat(),
+
                     "images": [
                         {
                             "id": image.id,
@@ -248,22 +398,118 @@ class MyPropertiesResource(Resource):
         }, 200
 
 
-# ==========================================
-# SINGLE PROPERTY
-# ==========================================
 class PropertyResource(Resource):
 
-    # --------------------------------------
-    # GET SINGLE PROPERTY
-    # --------------------------------------
-    def get(self, property_id):
 
+     @jwt_required()
+     def delete(self, property_id):
+            property = Property.query.get(property_id)
+    
+            current_user_id = int(get_jwt_identity())
+            current_user = User.query.get(current_user_id)
+    
+            if not current_user:
+                return {
+                    "error": "User not found"
+                }, 404
+    
+            if property.user_id != current_user_id and current_user.role != "admin":
+                return {
+                    "error": "You are not authorized to delete this property"
+                }, 403
+    
+            db.session.delete(property)
+            db.session.commit()
+    
+            return {
+                "message": "Property deleted successfully"
+            }, 200
+
+            @jwt_required()
+            def patch(self, property_id):
+             property = Property.query.get(property_id)
+    
+            if not property:
+                return {
+                    "error": "Property not found"
+                }, 404
+    
+            current_user_id = int(get_jwt_identity())
+            current_user = User.query.get(current_user_id)
+    
+            if not current_user:
+                  return {
+            "error": "User not found"
+        }, 404
+    
+            if property.user_id != current_user_id and current_user.role != "admin":
+                   return {
+            "error": "You are not authorized to update this property"
+        }, 403
+    
+            data = request.get_json()
+    
+            if not data:
+                return {
+                    "error": "Request body is required"
+                }, 400
+    
+            allowed_fields = [
+                "title",
+                "description",
+                "property_type",
+                "listing_type",
+                "price",
+                "location",
+                "county",
+                "bedrooms",
+                "bathrooms"
+            ]
+    
+            for field in allowed_fields:
+                if field in data:
+                    setattr(
+                        property,
+                        field,
+                        data[field]
+                    )
+    
+            db.session.commit()
+    
+            return {
+                "message": "Property updated successfully",
+    
+                "property": {
+                    "id": property.id,
+                    "title": property.title,
+                    "description": property.description,
+                    "property_type": property.property_type,
+                    "listing_type": property.listing_type,
+                    "price": float(property.price),
+                    "location": property.location,
+                    "county": property.county,
+                    "bedrooms": property.bedrooms,
+                    "bathrooms": property.bathrooms,
+                    "user_id": property.user_id,
+                    "updated_at": property.updated_at.isoformat(),
+    
+                    "images": [
+                        {
+                            "id": image.id,
+                            "image_url": image.image_url
+                        }
+                        for image in property.images
+                    ]
+                }
+            }, 200
+
+
+
+     def get(self, property_id):
         property = Property.query.get(property_id)
 
         if not property:
-            return {
-                "error": "Property not found"
-            }, 404
+            return {"error": "Property not found"}, 404
 
         return {
             "property": {
@@ -283,131 +529,17 @@ class PropertyResource(Resource):
                 "images": [
                     {
                         "id": image.id,
-                        "image_url": image.image_url
+                        "image_url": image.image_url,
                     }
                     for image in property.images
-                ]
+                ],
             }
         }, 200
-
-    # --------------------------------------
-    # UPDATE PROPERTY
-    # --------------------------------------
-    @jwt_required()
-    def patch(self, property_id):
-
-        property = Property.query.get(property_id)
-
-        if not property:
-            return {
-                "error": "Property not found"
-            }, 404
-
-        current_user_id = int(get_jwt_identity())
-
-        current_user = User.query.get(current_user_id)
-
-        if not current_user:
-            return {
-                "error": "User not found"
-            }, 404
-
-        if (
-            property.user_id != current_user_id
-            and current_user.role != "admin"
-        ):
-            return {
-                "error": "You are not authorized to update this property"
-            }, 403
-
-        data = request.get_json()
-
-        allowed_fields = [
-            "title",
-            "description",
-            "property_type",
-            "listing_type",
-            "price",
-            "location",
-            "county",
-            "bedrooms",
-            "bathrooms",
-        ]
-
-        for field in allowed_fields:
-            if field in data:
-                setattr(property, field, data[field])
-
-        db.session.commit()
-
-        return {
-            "message": "Property updated successfully",
-            "property": {
-                "id": property.id,
-                "title": property.title,
-                "description": property.description,
-                "property_type": property.property_type,
-                "listing_type": property.listing_type,
-                "price": float(property.price),
-                "location": property.location,
-                "county": property.county,
-                "bedrooms": property.bedrooms,
-                "bathrooms": property.bathrooms,
-                "updated_at": property.updated_at.isoformat(),
-                "images": [
-                    {
-                        "id": image.id,
-                        "image_url": image.image_url
-                    }
-                    for image in property.images
-                ]
-            }
-        }, 200
-
-    # --------------------------------------
-    # DELETE PROPERTY
-    # --------------------------------------
-    @jwt_required()
-    def delete(self, property_id):
-
-        property = Property.query.get(property_id)
-
-        if not property:
-            return {
-                "error": "Property not found"
-            }, 404
-
-        current_user_id = int(get_jwt_identity())
-
-        current_user = User.query.get(current_user_id)
-
-        if not current_user:
-            return {
-                "error": "User not found"
-            }, 404
-
-        if (
-            property.user_id != current_user_id
-            and current_user.role != "admin"
-        ):
-            return {
-                "error": "You are not authorized to delete this property"
-            }, 403
-
-        db.session.delete(property)
-        db.session.commit()
-
-        return {
-            "message": "Property deleted successfully"
-        }, 200
-    # ==========================================
-# PROPERTY IMAGES
-# ==========================================
 class PropertyImageResource(Resource):
 
-    # --------------------------------------
-    # UPLOAD IMAGE
-    # --------------------------------------
+    # ==========================================
+    # UPLOAD PROPERTY IMAGE
+    # ==========================================
     @jwt_required()
     def post(self, property_id):
 
@@ -420,14 +552,9 @@ class PropertyImageResource(Resource):
 
         current_user_id = int(get_jwt_identity())
 
-        current_user = User.query.get(current_user_id)
-
-        if (
-            property.user_id != current_user_id
-            and current_user.role != "admin"
-        ):
+        if property.user_id != current_user_id:
             return {
-                "error": "You are not authorized to upload images"
+                "error": "You are not authorized to add images to this property"
             }, 403
 
         if "image" not in request.files:
@@ -449,7 +576,10 @@ class PropertyImageResource(Resource):
             "uploads"
         )
 
-        os.makedirs(upload_folder, exist_ok=True)
+        os.makedirs(
+            upload_folder,
+            exist_ok=True
+        )
 
         image_path = os.path.join(
             upload_folder,
@@ -475,9 +605,9 @@ class PropertyImageResource(Resource):
             }
         }, 201
 
-    # --------------------------------------
-    # DELETE IMAGE
-    # --------------------------------------
+    # ==========================================
+    # DELETE PROPERTY IMAGE
+    # ==========================================
     @jwt_required()
     def delete(self, property_id, image_id):
 
@@ -490,14 +620,9 @@ class PropertyImageResource(Resource):
 
         current_user_id = int(get_jwt_identity())
 
-        current_user = User.query.get(current_user_id)
-
-        if (
-            property.user_id != current_user_id
-            and current_user.role != "admin"
-        ):
+        if property.user_id != current_user_id:
             return {
-                "error": "You are not authorized to delete images"
+                "error": "You are not authorized to delete images from this property"
             }, 403
 
         image = PropertyImage.query.filter_by(
