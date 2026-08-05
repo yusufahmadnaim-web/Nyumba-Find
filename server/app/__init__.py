@@ -57,4 +57,11 @@ def create_app():
             filename
         )
 
+    @app.route("/")
+    def home():
+     return {
+        "status": "success",
+        "message": "Welcome to the NyumbaFind API!"
+    }, 200
+
     return app
